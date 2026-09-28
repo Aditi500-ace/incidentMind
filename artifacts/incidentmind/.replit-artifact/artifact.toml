@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "IncidentMind"
+description = "An AI-powered production incident response workspace that uses persistent operational memory to make future investigations faster and more contextual."
+version = "1.0.0"
+id = "artifacts/incidentmind"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23356
+
+[services.development]
+run = "pnpm --filter @workspace/incidentmind run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/incidentmind", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/incidentmind/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23356"
+BASE_PATH = "/"

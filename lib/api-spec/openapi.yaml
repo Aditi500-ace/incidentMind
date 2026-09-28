@@ -3,20 +3,24 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: IncidentMind production incident response API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+  - name: dashboard
+  - name: incidents
+  - name: memory
+  - name: runbooks
+  - name: postmortems
+  - name: demo
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +28,697 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get dashboard metrics and recent activity
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+  /incidents:
+    get:
+      operationId: listIncidents
+      tags: [incidents]
+      summary: List incidents
+      parameters:
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/Service"
+        - $ref: "#/components/parameters/Severity"
+        - $ref: "#/components/parameters/Status"
+      responses:
+        "200":
+          description: Incident list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Incident"
+    post:
+      operationId: createIncident
+      tags: [incidents]
+      summary: Create an incident
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IncidentInput"
+      responses:
+        "201":
+          description: Created incident
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Incident"
+  /incidents/{incidentId}:
+    get:
+      operationId: getIncident
+      tags: [incidents]
+      summary: Get an incident
+      parameters:
+        - $ref: "#/components/parameters/IncidentId"
+      responses:
+        "200":
+          description: Incident detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IncidentDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /incidents/{incidentId}/analyze:
+    post:
+      operationId: analyzeIncident
+      tags: [incidents]
+      summary: Analyze an incident with memory recall
+      parameters:
+        - $ref: "#/components/parameters/IncidentId"
+      responses:
+        "200":
+          description: Analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IncidentAnalysis"
+  /incidents/{incidentId}/resolve:
+    post:
+      operationId: resolveIncident
+      tags: [incidents]
+      summary: Resolve an incident and record its learning
+      parameters:
+        - $ref: "#/components/parameters/IncidentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResolutionInput"
+      responses:
+        "200":
+          description: Resolved incident
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResolutionResult"
+  /incidents/{incidentId}/retain:
+    post:
+      operationId: retainIncidentMemory
+      tags: [incidents, memory]
+      summary: Retain an incident experience in Hindsight
+      parameters:
+        - $ref: "#/components/parameters/IncidentId"
+      responses:
+        "200":
+          description: Retained memory
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Memory"
+  /memory:
+    get:
+      operationId: listMemories
+      tags: [memory]
+      summary: List retained memories
+      parameters:
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/Service"
+        - $ref: "#/components/parameters/Severity"
+      responses:
+        "200":
+          description: Memory list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Memory"
+  /memory/{memoryId}:
+    get:
+      operationId: getMemory
+      tags: [memory]
+      summary: Get memory detail
+      parameters:
+        - $ref: "#/components/parameters/MemoryId"
+      responses:
+        "200":
+          description: Memory detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Memory"
+  /memory/recall:
+    post:
+      operationId: recallMemory
+      tags: [memory]
+      summary: Recall relevant incident experience
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecallInput"
+      responses:
+        "200":
+          description: Relevant memories
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecallResult"
+  /runbooks:
+    get:
+      operationId: listRunbooks
+      tags: [runbooks]
+      summary: List operational runbooks
+      responses:
+        "200":
+          description: Runbook list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Runbook"
+  /runbooks/{runbookId}:
+    get:
+      operationId: getRunbook
+      tags: [runbooks]
+      summary: Get a runbook
+      parameters:
+        - $ref: "#/components/parameters/RunbookId"
+      responses:
+        "200":
+          description: Runbook detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Runbook"
+  /postmortems:
+    get:
+      operationId: listPostmortems
+      tags: [postmortems]
+      summary: List post-mortems
+      responses:
+        "200":
+          description: Post-mortem list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Postmortem"
+    post:
+      operationId: createPostmortem
+      tags: [postmortems]
+      summary: Save a post-mortem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostmortemInput"
+      responses:
+        "201":
+          description: Saved post-mortem
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Postmortem"
+  /postmortems/{postmortemId}:
+    get:
+      operationId: getPostmortem
+      tags: [postmortems]
+      summary: Get a post-mortem
+      parameters:
+        - $ref: "#/components/parameters/PostmortemId"
+      responses:
+        "200":
+          description: Post-mortem detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Postmortem"
+  /demo/state:
+    get:
+      operationId: getDemoState
+      tags: [demo]
+      summary: Get demo progress
+      responses:
+        "200":
+          description: Demo state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DemoState"
+  /demo/reset:
+    post:
+      operationId: resetDemo
+      tags: [demo]
+      summary: Reset the guided demo
+      responses:
+        "200":
+          description: Reset state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DemoState"
+  /demo/trigger-first:
+    post:
+      operationId: triggerFirstDemoIncident
+      tags: [demo]
+      summary: Trigger the first Payment API incident
+      responses:
+        "200":
+          description: Demo incident and analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DemoActionResult"
+  /demo/resolve-and-learn:
+    post:
+      operationId: resolveAndLearnDemoIncident
+      tags: [demo]
+      summary: Resolve the demo incident and teach IncidentMind
+      responses:
+        "200":
+          description: Demo learning result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DemoActionResult"
+  /demo/trigger-similar:
+    post:
+      operationId: triggerSimilarDemoIncident
+      tags: [demo]
+      summary: Trigger a similar Payment API incident
+      responses:
+        "200":
+          description: Similar incident and contextual analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DemoActionResult"
 components:
+  parameters:
+    IncidentId:
+      name: incidentId
+      in: path
+      required: true
+      schema: { type: string }
+    MemoryId:
+      name: memoryId
+      in: path
+      required: true
+      schema: { type: string }
+    RunbookId:
+      name: runbookId
+      in: path
+      required: true
+      schema: { type: string }
+    PostmortemId:
+      name: postmortemId
+      in: path
+      required: true
+      schema: { type: string }
+    Search:
+      name: search
+      in: query
+      required: false
+      schema: { type: string }
+    Service:
+      name: service
+      in: query
+      required: false
+      schema: { type: string }
+    Severity:
+      name: severity
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [SEV-1, SEV-2, SEV-3, SEV-4]
+    Status:
+      name: status
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [active, investigating, resolved]
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
+        status: { type: string }
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+    Incident:
+      type: object
+      required: [id, title, service, severity, status, errorMessage, logs, metrics, timestamp, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        service: { type: string }
+        severity:
+          type: string
+          enum: [SEV-1, SEV-2, SEV-3, SEV-4]
         status:
           type: string
-      required:
-        - status
-
+          enum: [active, investigating, resolved]
+        errorMessage: { type: string }
+        logs:
+          type: array
+          items: { type: string }
+        metrics:
+          type: array
+          items:
+            $ref: "#/components/schemas/Metric"
+        timestamp: { type: string, format: date-time }
+        affectedComponents:
+          type: array
+          items: { type: string }
+        rootCause: { type: ["string", "null"] }
+        resolution: { type: ["string", "null"] }
+        lessonsLearned: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        resolvedAt: { type: ["string", "null"], format: date-time }
+    IncidentInput:
+      type: object
+      required: [title, service, severity, errorMessage, logs, metrics, timestamp]
+      properties:
+        title: { type: string, minLength: 3 }
+        service: { type: string, minLength: 2 }
+        severity:
+          type: string
+          enum: [SEV-1, SEV-2, SEV-3, SEV-4]
+        errorMessage: { type: string, minLength: 3 }
+        logs:
+          type: array
+          items: { type: string }
+        metrics:
+          type: array
+          items:
+            $ref: "#/components/schemas/Metric"
+        timestamp: { type: string, format: date-time }
+        affectedComponents:
+          type: array
+          items: { type: string }
+    Metric:
+      type: object
+      required: [label, value]
+      properties:
+        label: { type: string }
+        value: { type: string }
+        numericValue: { type: ["number", "null"] }
+        unit: { type: ["string", "null"] }
+    IncidentDetail:
+      allOf:
+        - $ref: "#/components/schemas/Incident"
+        - type: object
+          required: [events, analysis, memoryId]
+          properties:
+            events:
+              type: array
+              items:
+                $ref: "#/components/schemas/IncidentEvent"
+            analysis:
+              oneOf:
+                - $ref: "#/components/schemas/IncidentAnalysis"
+                - type: "null"
+            memoryId: { type: ["string", "null"] }
+    IncidentEvent:
+      type: object
+      required: [id, type, label, timestamp]
+      properties:
+        id: { type: string }
+        type: { type: string }
+        label: { type: string }
+        detail: { type: ["string", "null"] }
+        timestamp: { type: string, format: date-time }
+    IncidentAnalysis:
+      type: object
+      required: [summary, rootCauses, investigationSteps, remediation, confidence, historicalMemories, usedMemory, fallbackMode]
+      properties:
+        summary: { type: string }
+        rootCauses:
+          type: array
+          items:
+            $ref: "#/components/schemas/Hypothesis"
+        investigationSteps:
+          type: array
+          items: { type: string }
+        remediation:
+          type: array
+          items: { type: string }
+        confidence: { type: string }
+        historicalMemories:
+          type: array
+          items:
+            $ref: "#/components/schemas/Memory"
+        usedMemory: { type: boolean }
+        fallbackMode: { type: boolean }
+        memoryNotice: { type: ["string", "null"] }
+        sources:
+          type: array
+          items: { type: string }
+    Hypothesis:
+      type: object
+      required: [title, detail, confidence]
+      properties:
+        title: { type: string }
+        detail: { type: string }
+        confidence: { type: string }
+    ResolutionInput:
+      type: object
+      required: [rootCause, resolutionSteps, actionsTaken, servicesAffected, whatFixedIt, lessonsLearned]
+      properties:
+        rootCause: { type: string, minLength: 3 }
+        resolutionSteps:
+          type: array
+          items: { type: string }
+        actionsTaken:
+          type: array
+          items: { type: string }
+        servicesAffected:
+          type: array
+          items: { type: string }
+        whatFixedIt: { type: string }
+        lessonsLearned: { type: string }
+    ResolutionResult:
+      type: object
+      required: [incident, memory, postmortem]
+      properties:
+        incident:
+          $ref: "#/components/schemas/Incident"
+        memory:
+          $ref: "#/components/schemas/Memory"
+        postmortem:
+          $ref: "#/components/schemas/Postmortem"
+    Memory:
+      type: object
+      required: [id, incidentId, incidentTitle, service, severity, symptoms, rootCause, resolution, lessonsLearned, source, createdAt]
+      properties:
+        id: { type: string }
+        incidentId: { type: string }
+        incidentTitle: { type: string }
+        service: { type: string }
+        severity:
+          type: string
+          enum: [SEV-1, SEV-2, SEV-3, SEV-4]
+        symptoms:
+          type: array
+          items: { type: string }
+        rootCause: { type: string }
+        resolution: { type: string }
+        lessonsLearned: { type: string }
+        investigationSteps:
+          type: array
+          items: { type: string }
+        source:
+          type: string
+          enum: [hindsight, demo-fallback]
+        createdAt: { type: string, format: date-time }
+    RecallInput:
+      type: object
+      required: [service, errorMessage, symptoms]
+      properties:
+        service: { type: string }
+        errorMessage: { type: string }
+        symptoms:
+          type: array
+          items: { type: string }
+    RecallResult:
+      type: object
+      required: [memories, usedMemory, fallbackMode, notice]
+      properties:
+        memories:
+          type: array
+          items:
+            $ref: "#/components/schemas/Memory"
+        usedMemory: { type: boolean }
+        fallbackMode: { type: boolean }
+        notice: { type: string }
+    Runbook:
+      type: object
+      required: [id, title, service, symptoms, checks, commands, possibleCauses, remediation, verification]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        service: { type: string }
+        symptoms:
+          type: array
+          items: { type: string }
+        checks:
+          type: array
+          items: { type: string }
+        commands:
+          type: array
+          items: { type: string }
+        possibleCauses:
+          type: array
+          items: { type: string }
+        remediation:
+          type: array
+          items: { type: string }
+        verification:
+          type: array
+          items: { type: string }
+    Postmortem:
+      type: object
+      required: [id, incidentId, title, summary, impact, timeline, rootCause, contributingFactors, resolution, preventiveActions, lessonsLearned, createdAt]
+      properties:
+        id: { type: string }
+        incidentId: { type: string }
+        title: { type: string }
+        summary: { type: string }
+        impact: { type: string }
+        timeline:
+          type: array
+          items:
+            $ref: "#/components/schemas/IncidentEvent"
+        rootCause: { type: string }
+        contributingFactors:
+          type: array
+          items: { type: string }
+        resolution: { type: string }
+        preventiveActions:
+          type: array
+          items: { type: string }
+        lessonsLearned: { type: string }
+        createdAt: { type: string, format: date-time }
+    PostmortemInput:
+      type: object
+      required: [incidentId, title, summary, impact, timeline, rootCause, contributingFactors, resolution, preventiveActions, lessonsLearned]
+      properties:
+        incidentId: { type: string }
+        title: { type: string }
+        summary: { type: string }
+        impact: { type: string }
+        timeline:
+          type: array
+          items:
+            $ref: "#/components/schemas/IncidentEvent"
+        rootCause: { type: string }
+        contributingFactors:
+          type: array
+          items: { type: string }
+        resolution: { type: string }
+        preventiveActions:
+          type: array
+          items: { type: string }
+        lessonsLearned: { type: string }
+    DashboardSummary:
+      type: object
+      required: [activeIncidents, resolvedIncidents, criticalIncidents, averageResolutionMinutes, memoryEntries, repeatedIncidents, servicesAffected, incidentsOverTime, incidentsBySeverity, servicesByImpact, repeatedPatterns, recentActivity]
+      properties:
+        activeIncidents: { type: integer }
+        resolvedIncidents: { type: integer }
+        criticalIncidents: { type: integer }
+        averageResolutionMinutes: { type: number }
+        memoryEntries: { type: integer }
+        repeatedIncidents: { type: integer }
+        servicesAffected: { type: integer }
+        incidentsOverTime:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChartPoint"
+        incidentsBySeverity:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChartPoint"
+        servicesByImpact:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChartPoint"
+        repeatedPatterns:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChartPoint"
+        recentActivity:
+          type: array
+          items:
+            $ref: "#/components/schemas/Activity"
+    ChartPoint:
+      type: object
+      required: [label, value]
+      properties:
+        label: { type: string }
+        value: { type: number }
+    Activity:
+      type: object
+      required: [id, label, detail, timestamp, tone]
+      properties:
+        id: { type: string }
+        label: { type: string }
+        detail: { type: string }
+        timestamp: { type: string, format: date-time }
+        tone:
+          type: string
+          enum: [critical, warning, success, neutral]
+    DemoState:
+      type: object
+      required: [stage, firstIncident, similarIncident, memory, analysis, fallbackMode]
+      properties:
+        stage:
+          type: string
+          enum: [ready, investigated, learned, recalled]
+        firstIncident:
+          oneOf:
+            - $ref: "#/components/schemas/Incident"
+            - type: "null"
+        similarIncident:
+          oneOf:
+            - $ref: "#/components/schemas/Incident"
+            - type: "null"
+        memory:
+          oneOf:
+            - $ref: "#/components/schemas/Memory"
+            - type: "null"
+        analysis:
+          oneOf:
+            - $ref: "#/components/schemas/IncidentAnalysis"
+            - type: "null"
+        fallbackMode: { type: boolean }
+    DemoActionResult:
+      type: object
+      required: [state, message]
+      properties:
+        state:
+          $ref: "#/components/schemas/DemoState"
+        message: { type: string }
